@@ -27,15 +27,15 @@ func Get(url string) string {
 }
 
 // PostForm : PostForm values thru HTTP PostForm
-func PostForm(url string, data url.Values) string {
+func PostForm(url string, values url.Values) string {
 	log.Debugf("Request: %s\n", url)
 	client := &http.Client{}
-	r, err := http.NewRequest("POST", url, strings.NewReader(data.Encode())) // URL-encoded payload
+	r, err := http.NewRequest("POST", url, strings.NewReader(values.Encode())) // URL-encoded payload
 	if err != nil {
 		log.Fatal(err)
 	}
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
+	r.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
 
 	res, err := client.Do(r)
 	if err != nil {
