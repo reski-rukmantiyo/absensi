@@ -4,9 +4,10 @@ import (
 	"absensi/config"
 	"absensi/tools"
 	"errors"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/url"
-	"os"
 	"time"
 
 	"gorm.io/driver/sqlite"
@@ -25,10 +26,10 @@ type TokenResult struct {
 type Daftar struct {
 	gorm.Model
 	WorkingDate       time.Time `gorm:"column:working_date;uniqueIndex"`
-	LoginDateTime     time.Time `gorm:"column:login_date"`
-	LogoutDateTime    time.Time `gorm:"column:logout_date"`
-	LoginExecuteTime  time.Time
-	LogoutExecuteTime time.Time
+	LoginDateTime     time.Time `gorm:"column:login_time"`
+	LogoutDateTime    time.Time `gorm:"column:logout_time"`
+	LoginExecuteTime  time.Time `gorm:"column:login_execute_time"`
+	LogoutExecuteTime time.Time `gorm:"column:logout_execute_time"`
 }
 
 func checkAndCreateSchedule(filePath string) (*Daftar, error) {
@@ -62,24 +63,41 @@ func main() {
 	// token := Login(config)
 	// log.Println(token)
 
-	home, err := os.UserHomeDir()
-	folderPath := home + "/" + ".absensi"
-	fileName := folderPath + "/" + "absensi.db"
-	_, err = os.Stat(folderPath)
-	if err != nil {
-		err = os.Mkdir(folderPath, os.ModePerm)
-		if err != nil {
-			log.Panic("Create File Error. Panic and abort the apps")
-		}
-	}
-	_, err = os.Stat(fileName)
-	if err != nil {
-		err = createFile(fileName)
-		if err != nil {
-			log.Panic("Create File Error. Panic and abort the apps")
-		}
-	}
-	checkAndCreateSchedule(fileName)
+	// home, err := os.UserHomeDir()
+	// folderPath := home + "/" + ".absensi"
+	// fileName := folderPath + "/" + "absensi.db"
+	// _, err = os.Stat(folderPath)
+	// if err != nil {
+	// 	err = os.Mkdir(folderPath, os.ModePerm)
+	// 	if err != nil {
+	// 		log.Panic("Create File Error. Panic and abort the apps")
+	// 	}
+	// }
+	// _, err = os.Stat(fileName)
+	// if err != nil {
+	// 	err = createFile(fileName)
+	// 	if err != nil {
+	// 		log.Panic("Create File Error. Panic and abort the apps")
+	// 	}
+	// }
+	// checkAndCreateSchedule(fileName)
+
+	year, month, day := time.Now().Date()
+	loginTime := time.Date(year, month, day, 7, 0, 0, 0, time.Now().Location())
+	logoutTime := time.Date(year, month, day, 16, 30, 0, 0, time.Now().Location())
+	randomMinutes := returnRandom(0, 29)
+	randomShift := returnRandom(1, 3)
+	fullLoginTime := loginTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
+	fullLogoutTime := logoutTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
+	log.Printf("Login: %s,Logout: %s", fullLoginTime, fullLogoutTime)
+
+}
+
+func returnRandom(min, max int) int {
+	rand.Seed(time.Now().UnixNano())
+	x := rand.Intn(max-min+1) + min
+	fmt.Println("Random %i", x)
+	return x
 }
 
 func Login(config *config.Config) string {
