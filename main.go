@@ -3,7 +3,6 @@ package main
 import (
 	"absensi/config"
 	"absensi/tools"
-	"fmt"
 	"log"
 	"net/url"
 )
@@ -13,17 +12,17 @@ func init() {
 }
 
 type TokenResult struct {
-	token       string
-	permissions map[string]string
+	Token       string   `json:"token"`
+	Permissions []string `json:"permissions"`
 }
 
 func main() {
 	config := config.NewConfig()
-	// var params = url.Values{}
-	// username := config.Username
-	// password := config.Password
-	// loginUrl := config.BaseURL + "login"
-	//fmt.Println("pointer:", &config)
+	token := Login(config)
+	log.Println(token)
+}
+
+func Login(config *config.Config) string {
 	var params = url.Values{}
 	params.Add("username", config.Username)
 	params.Add("password", config.Password)
@@ -31,7 +30,7 @@ func main() {
 	if requestResult == "" {
 		log.Fatal("Error on Request Response")
 	}
-	// fmt.Println("pointer:", config.Username)
-	fmt.Println(requestResult)
-
+	tokenResult := &TokenResult{}
+	tools.FromJSON(requestResult, tokenResult)
+	return tokenResult.Token
 }
