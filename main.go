@@ -5,6 +5,9 @@ import (
 	"absensi/tools"
 	"log"
 	"net/url"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 func init() {
@@ -16,10 +19,26 @@ type TokenResult struct {
 	Permissions []string `json:"permissions"`
 }
 
+type Daftar struct {
+	gorm.Model
+	WorkData          time.Time `gorm:"uniqueIndex"`
+	LoginDateTime     time.Time
+	LogoutDateTime    time.Time
+	LoginExecuteTime  time.Time
+	LogoutExecuteTime time.Time
+}
+
 func main() {
-	config := config.NewConfig()
-	token := Login(config)
-	log.Println(token)
+	// config := config.NewConfig()
+	// token := Login(config)
+	// log.Println(token)
+
+	// db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	// if err != nil {
+	// 	log.Panic("failed to connect database")
+	// }
+	// db.AutoMigrate(&Daftar{})
+
 }
 
 func Login(config *config.Config) string {
