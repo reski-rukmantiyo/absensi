@@ -3,6 +3,8 @@ package main
 import (
 	"absensi/source/config"
 	"absensi/source/tools"
+	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -84,7 +86,7 @@ func main() {
 	loginTime := time.Date(year, month, day, 7, 0, 0, 0, time.Now().Location())
 	logoutTime := time.Date(year, month, day, 16, 30, 0, 0, time.Now().Location())
 	randomMinutes := returnRandom(0, 29)
-	randomShift := returnRandom(1, 3)
+	randomShift := returnRandom(0, 2)
 	fullLoginTime := loginTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
 	fullLogoutTime := logoutTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
 	log.Printf("Login: %s,Logout: %s", fullLoginTime, fullLogoutTime)
