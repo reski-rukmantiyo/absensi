@@ -4,11 +4,11 @@ import (
 	"absensi/source/config"
 	"absensi/source/tools"
 	"errors"
-	"fmt"
-	"log"
 	"math/rand"
 	"net/url"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -16,6 +16,8 @@ import (
 
 func init() {
 	config.LoadEnv()
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 }
 
 type TokenResult struct {
@@ -85,10 +87,16 @@ func main() {
 	year, month, day := time.Now().Date()
 	loginTime := time.Date(year, month, day, 7, 0, 0, 0, time.Now().Location())
 	logoutTime := time.Date(year, month, day, 16, 30, 0, 0, time.Now().Location())
-	randomMinutes := returnRandom(0, 29)
-	randomShift := returnRandom(0, 2)
-	fullLoginTime := loginTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
-	fullLogoutTime := logoutTime.Add(time.Minute * time.Duration(randomMinutes+(randomShift*30)))
+	randomLoginMinutes := returnRandom(0, 29)
+	randomLogoutMinutes := returnRandom(0, 29)
+	randomLoginShift := returnRandom(0, 2)
+	startRandomLogoutShift := 0 + randomLoginShift
+	if startRandomLogoutShift >= 2 {
+		startRandomLogoutShift = 2
+	}
+	randomLogoutShift := returnRandom(startRandomLogoutShift, 2)
+	fullLoginTime := loginTime.Add(time.Minute * time.Duration(randomLoginMinutes+(randomLoginShift*30)))
+	fullLogoutTime := logoutTime.Add(time.Minute * time.Duration(randomLogoutMinutes+(randomLogoutShift*30)))
 	log.Printf("Login: %s,Logout: %s", fullLoginTime, fullLogoutTime)
 
 }
@@ -96,7 +104,8 @@ func main() {
 func returnRandom(min, max int) int {
 	rand.Seed(time.Now().UnixNano())
 	x := rand.Intn(max-min+1) + min
-	fmt.Println("Random %i", x)
+	// fmt.Println("Random %i", x)
+	log.Debugf("Random %d", x)
 	return x
 }
 
