@@ -7,6 +7,7 @@ package config
 import (
 	"log"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 
@@ -14,10 +15,15 @@ import (
 )
 
 func LoadEnv() {
-	// loads values from .env into the system
-	if err := godotenv.Load("../.env"); err != nil {
-		if err := godotenv.Load(".env"); err != nil {
-			log.Fatal("No .env file. Application dismissed")
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := godotenv.Load("/app/.env"); err != nil {
+		if err := godotenv.Load(usr.HomeDir + "/.env"); err != nil {
+			if err := godotenv.Load(".env"); err != nil {
+				log.Fatal("No .env file. Application dismissed")
+			}
 		}
 	}
 }

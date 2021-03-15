@@ -1,8 +1,8 @@
 package main
 
 import (
-	"absensi/config"
-	"absensi/tools"
+	"absensi/source/config"
+	"absensi/source/tools"
 	"log"
 	"net/url"
 )
