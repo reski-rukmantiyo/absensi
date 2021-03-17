@@ -74,7 +74,7 @@ func PostFormJSON(url string, obj interface{}) string {
 }
 
 // PostForm : PostForm values thru HTTP PostForm
-func PostForm(url string, values url.Values) string {
+func PostForm(url string, values url.Values, headers ...map[string]string) string {
 	log.Debugf("Request: %s\n", url)
 	client := &http.Client{}
 	r, err := http.NewRequest("POST", url, strings.NewReader(values.Encode())) // URL-encoded payload
@@ -83,7 +83,13 @@ func PostForm(url string, values url.Values) string {
 	}
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-
+	if len(headers) != 0 {
+		for _, header := range headers {
+			for name, value := range header {
+				r.Header.Add(name, value)
+			}
+		}
+	}
 	res, err := client.Do(r)
 	if err != nil {
 		log.Printf("Error when get response. Message: %s", err.Error())

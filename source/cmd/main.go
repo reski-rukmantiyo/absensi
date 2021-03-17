@@ -3,9 +3,17 @@ package main
 import (
 	"absensi/source/config"
 	"absensi/source/tools"
+	"bytes"
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
+	"mime/multipart"
+	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -34,8 +42,46 @@ type Daftar struct {
 	LogoutExecuteTime time.Time `gorm:"column:logout_execute_time"`
 }
 
-func checkAndCreateSchedule(filePath string) (*Daftar, error) {
-	db, err := gorm.Open(sqlite.Open(filePath), &gorm.Config{})
+func insertIntoDB(filename string, daftar *Daftar) error {
+	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+	if err != nil {
+		log.Panic("failed to connect database")
+		return err
+	}
+	result := db.Create(&daftar)
+	if err := result.Error; err != nil {
+		log.Panic("record couldn't be saved")
+		return err
+	}
+	if count := result.RowsAffected; count == 0 {
+		log.Panic("record couldn't be saved")
+		return err
+	}
+	return nil
+}
+
+func doLoginOrLogoutDB(filename string, isLogin bool) error {
+	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+	if err != nil {
+		log.Panic("failed to connect database")
+		return err
+	}
+	daftar := &Daftar{}
+	result := db.Where("working_date=?", time.Now().Format("2006-01-02")).First(&daftar)
+	if err = result.Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if isLogin {
+		daftar.LoginExecuteTime = time.Now()
+	} else {
+		daftar.LogoutExecuteTime = time.Now()
+	}
+	db.Save(&daftar)
+	return nil
+}
+
+func checkAndCreateSchedule(filename string) (*Daftar, error) {
+	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
 	if err != nil {
 		log.Panic("failed to connect database")
 		return nil, err
@@ -46,6 +92,13 @@ func checkAndCreateSchedule(filePath string) (*Daftar, error) {
 	if err = result.Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		// Create another record
 		//log.Panicf("Create new record. %s", err.Error())
+		loginTime, logoutTime := getDateLoginLogout()
+		daftar = &Daftar{
+			WorkingDate:    time.Now(),
+			LoginDateTime:  loginTime,
+			LogoutDateTime: logoutTime,
+		}
+		insertIntoDB(filename, daftar)
 	}
 	return daftar, nil
 }
@@ -61,29 +114,99 @@ func createFile(filePath string) error {
 }
 
 func main() {
-	// config := config.NewConfig()
-	// token := Login(config)
+	config := config.NewConfig()
+
 	// log.Println(token)
 
-	// home, err := os.UserHomeDir()
-	// folderPath := home + "/" + ".absensi"
-	// fileName := folderPath + "/" + "absensi.db"
-	// _, err = os.Stat(folderPath)
-	// if err != nil {
-	// 	err = os.Mkdir(folderPath, os.ModePerm)
-	// 	if err != nil {
-	// 		log.Panic("Create File Error. Panic and abort the apps")
-	// 	}
-	// }
-	// _, err = os.Stat(fileName)
-	// if err != nil {
-	// 	err = createFile(fileName)
-	// 	if err != nil {
-	// 		log.Panic("Create File Error. Panic and abort the apps")
-	// 	}
-	// }
-	// checkAndCreateSchedule(fileName)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Panic("Create File Error. Panic and abort the apps")
+	}
+	folderPath := home + "/" + ".absensi"
+	fileName := folderPath + "/" + "absensi.db"
+	_, err = os.Stat(folderPath)
+	if err != nil {
+		err = os.Mkdir(folderPath, os.ModePerm)
+		if err != nil {
+			log.Panic("Create File Error. Panic and abort the apps")
+		}
+	}
+	_, err = os.Stat(fileName)
+	if err != nil {
+		err = createFile(fileName)
+		if err != nil {
+			log.Panic("Create File Error. Panic and abort the apps")
+		}
+	}
+	daftar, err := checkAndCreateSchedule(fileName)
+	if err != nil {
+		log.Panic("Create File Error. Panic and abort the apps")
+	}
+	if daftar.LoginDateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") {
+		token := Login(config)
+		doLoginOrLogout(config, token, true)
+	}
+	if daftar.LogoutDateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") {
+		token := Login(config)
+		doLoginOrLogout(config, token, false)
+	}
+}
 
+func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
+	url := ""
+	if isLogin {
+		url = config.BaseURL + "/presences/punchIn"
+	} else {
+		url = config.BaseURL + "/presences/punchOut"
+	}
+	method := "POST"
+
+	payload := &bytes.Buffer{}
+	writer := multipart.NewWriter(payload)
+	_ = writer.WriteField("location_latitude", config.Lattitude)
+	_ = writer.WriteField("location_longitude", config.Longitude)
+	_ = writer.WriteField("location_description", config.Description)
+	_ = writer.WriteField("location_timezone", config.Region)
+	file, errFile5 := os.Open(config.Picture)
+	defer file.Close()
+	part5, errFile5 := writer.CreateFormFile("photo", filepath.Base(config.Picture))
+	_, errFile5 = io.Copy(part5, file)
+	if errFile5 != nil {
+		fmt.Println(errFile5)
+		return
+	}
+	err := writer.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
+}
+
+func getDateLoginLogout() (time.Time, time.Time) {
 	year, month, day := time.Now().Date()
 	loginTime := time.Date(year, month, day, 7, 0, 0, 0, time.Now().Location())
 	logoutTime := time.Date(year, month, day, 16, 30, 0, 0, time.Now().Location())
@@ -98,7 +221,7 @@ func main() {
 	fullLoginTime := loginTime.Add(time.Minute * time.Duration(randomLoginMinutes+(randomLoginShift*30)))
 	fullLogoutTime := logoutTime.Add(time.Minute * time.Duration(randomLogoutMinutes+(randomLogoutShift*30)))
 	log.Printf("Login: %s,Logout: %s", fullLoginTime, fullLogoutTime)
-
+	return fullLoginTime, fullLogoutTime
 }
 
 func returnRandom(min, max int) int {
