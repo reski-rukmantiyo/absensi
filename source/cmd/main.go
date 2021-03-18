@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/prprprus/scheduler"
@@ -161,7 +162,6 @@ func main() {
 
 func doAbsensi(config *config.Config) {
 	format := "2006-01-02 15:04"
-
 	home, err := tools.GetHomeDirectory()
 	folderPath := home + "/" + ".absensi"
 	fileName := folderPath + "/" + "absensi.db"
@@ -179,23 +179,34 @@ func doAbsensi(config *config.Config) {
 			log.Panic("Create File Error. Panic and abort the apps")
 		}
 	}
-	daftar, err := checkAndCreateSchedule(fileName)
-	if err != nil {
-		log.Panic("Create File Error. Panic and abort the apps")
+	currentDay := time.Now().Format("Mon")
+	isWeekend := false
+	if currentDay == "Sun" || currentDay == "Sat" {
+		isWeekend = true
 	}
-	log.Printf("Login: %s,Logout: %s,Now: %s",
-		daftar.LoginDateTime.Format(format),
-		daftar.LogoutDateTime.Format(format),
-		time.Now().Format(format))
-	if daftar.LoginDateTime.Format(format) == time.Now().Format(format) {
-		token := Login(config)
-		doLoginOrLogout(config, token, true)
-		doLoginOrLogoutDB(fileName, true)
-	}
-	if daftar.LogoutDateTime.Format(format) == time.Now().Format(format) {
-		token := Login(config)
-		doLoginOrLogout(config, token, false)
-		doLoginOrLogoutDB(fileName, false)
+	log.Debugf("hari sabtu minggu %t", isWeekend)
+	currentDate := time.Now().Format("2006-01-02")
+	hariLibur := tools.Get("https://gist.githubusercontent.com/reski-rukmantiyo/36bbd55e056e2159a736143b94b78795/raw/c1a4deaea0ac6f961cb92b22650bf8de952da6a0/2021.txt")
+	if existHariLibur := strings.Contains(hariLibur, currentDate); !existHariLibur && !isWeekend {
+		log.Debugf("bukan termasuk hari libur %t", existHariLibur)
+		daftar, err := checkAndCreateSchedule(fileName)
+		if err != nil {
+			log.Panic("Create File Error. Panic and abort the apps")
+		}
+		log.Printf("Login: %s,Logout: %s,Now: %s",
+			daftar.LoginDateTime.Format(format),
+			daftar.LogoutDateTime.Format(format),
+			time.Now().Format(format))
+		if daftar.LoginDateTime.Format(format) == time.Now().Format(format) {
+			token := Login(config)
+			doLoginOrLogout(config, token, true)
+			doLoginOrLogoutDB(fileName, true)
+		}
+		if daftar.LogoutDateTime.Format(format) == time.Now().Format(format) {
+			token := Login(config)
+			doLoginOrLogout(config, token, false)
+			doLoginOrLogoutDB(fileName, false)
+		}
 	}
 	doCron(59, config)
 }
