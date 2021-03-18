@@ -13,9 +13,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"time"
 
+	"github.com/prprprus/scheduler"
 	log "github.com/sirupsen/logrus"
 
 	"gorm.io/driver/sqlite"
@@ -35,7 +37,7 @@ type TokenResult struct {
 
 type Daftar struct {
 	gorm.Model
-	WorkingDate       time.Time `gorm:"column:working_date;uniqueIndex"`
+	WorkingDate       string    `gorm:"column:working_date;uniqueIndex"`
 	LoginDateTime     time.Time `gorm:"column:login_time"`
 	LogoutDateTime    time.Time `gorm:"column:logout_time"`
 	LoginExecuteTime  time.Time `gorm:"column:login_execute_time"`
@@ -48,7 +50,7 @@ func insertIntoDB(filename string, daftar *Daftar) error {
 		log.Panic("failed to connect database")
 		return err
 	}
-	result := db.Create(&daftar)
+	result := db.Create(daftar)
 	if err := result.Error; err != nil {
 		log.Panic("record couldn't be saved")
 		return err
@@ -88,13 +90,14 @@ func checkAndCreateSchedule(filename string) (*Daftar, error) {
 	}
 	daftar := &Daftar{}
 	//db.First(&daftar, "workingDate=?", time.Now().Format("2006-01-02")).Error
+	log.Printf("Saved for Data: %s", time.Now().Format("2006-01-02"))
 	result := db.Where("working_date=?", time.Now().Format("2006-01-02")).First(&daftar)
 	if err = result.Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		// Create another record
 		//log.Panicf("Create new record. %s", err.Error())
 		loginTime, logoutTime := getDateLoginLogout()
 		daftar = &Daftar{
-			WorkingDate:    time.Now(),
+			WorkingDate:    time.Now().Format("2006-01-02"),
 			LoginDateTime:  loginTime,
 			LogoutDateTime: logoutTime,
 		}
@@ -112,11 +115,24 @@ func createFile(filePath string) error {
 	db.AutoMigrate(&Daftar{})
 	return nil
 }
-
+func doCron(delay int) {
+	log.Printf("do Absensi at %s", time.Now())
+	s, err := scheduler.NewScheduler(1000)
+	if err != nil {
+		log.Println("Error when doing DoCron. Message: " + err.Error())
+	}
+	s.Delay().Second(delay).Do(doAbsensi)
+}
 func main() {
-	config := config.NewConfig()
+	doAbsensi()
+	sig := make(chan os.Signal)
+	signal.Notify(sig, os.Interrupt, os.Kill)
+	<-sig
+}
 
-	// log.Println(token)
+func doAbsensi() {
+	config := config.NewConfig()
+	format := "2006-01-02 15:04"
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -142,22 +158,29 @@ func main() {
 	if err != nil {
 		log.Panic("Create File Error. Panic and abort the apps")
 	}
-	if daftar.LoginDateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") {
+	log.Printf("Login: %s,Logout: %s,Now: %s",
+		daftar.LoginDateTime.Format(format),
+		daftar.LogoutDateTime.Format(format),
+		time.Now().Format(format))
+	if daftar.LoginDateTime.Format(format) == time.Now().Format(format) {
 		token := Login(config)
 		doLoginOrLogout(config, token, true)
+		doLoginOrLogoutDB(fileName, true)
 	}
-	if daftar.LogoutDateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") {
+	if daftar.LogoutDateTime.Format(format) == time.Now().Format(format) {
 		token := Login(config)
 		doLoginOrLogout(config, token, false)
+		doLoginOrLogoutDB(fileName, false)
 	}
+	doCron(59)
 }
 
 func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
 	url := ""
 	if isLogin {
-		url = config.BaseURL + "/presences/punchIn"
+		url = config.BaseURL + "presences/punchIn"
 	} else {
-		url = config.BaseURL + "/presences/punchOut"
+		url = config.BaseURL + "presences/punchOut"
 	}
 	method := "POST"
 
@@ -167,15 +190,20 @@ func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
 	_ = writer.WriteField("location_longitude", config.Longitude)
 	_ = writer.WriteField("location_description", config.Description)
 	_ = writer.WriteField("location_timezone", config.Region)
-	file, errFile5 := os.Open(config.Picture)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Panic("Create File Error. Panic and abort the apps")
+	}
+	folderPath := home + "/" + ".absensi"
+	file, errFile5 := os.Open(folderPath + "/" + config.Picture)
 	defer file.Close()
-	part5, errFile5 := writer.CreateFormFile("photo", filepath.Base(config.Picture))
+	part5, errFile5 := writer.CreateFormFile("photo", filepath.Base(folderPath+"/"+config.Picture))
 	_, errFile5 = io.Copy(part5, file)
 	if errFile5 != nil {
 		fmt.Println(errFile5)
 		return
 	}
-	err := writer.Close()
+	err = writer.Close()
 	if err != nil {
 		fmt.Println(err)
 		return

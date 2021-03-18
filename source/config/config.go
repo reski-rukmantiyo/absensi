@@ -18,9 +18,9 @@ type Config struct {
 func NewConfig() *Config {
 	LoadEnv()
 	return &Config{
-		BaseURL:     GetEnv("base_url", ""),
-		Username:    GetEnv("username", ""),
-		Password:    GetEnv("password", ""),
+		BaseURL:     GetEnv("BaseURL", ""),
+		Username:    GetEnv("UserName", ""),
+		Password:    GetEnv("Password", ""),
 		Picture:     GetEnv("Picture", ""),
 		Longitude:   GetEnv("Longitude", ""),
 		Lattitude:   GetEnv("Lattitude", ""),

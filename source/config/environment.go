@@ -19,11 +19,9 @@ func LoadEnv() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := godotenv.Load("/app/.env"); err != nil {
-		if err := godotenv.Load(usr.HomeDir + "/.env"); err != nil {
-			if err := godotenv.Load(".env"); err != nil {
-				log.Fatal("No .env file. Application dismissed")
-			}
+	if err := godotenv.Load(usr.HomeDir + "/.absensi/.env"); err != nil {
+		if err := godotenv.Load(".env"); err != nil {
+			log.Fatal("No .env file. Application dismissed")
 		}
 	}
 }

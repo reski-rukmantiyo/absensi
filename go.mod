@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prprprus/scheduler v0.5.0 // indirect
 	github.com/sirupsen/logrus v1.8.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
