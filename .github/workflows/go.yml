@@ -43,6 +43,9 @@ jobs:
     - name: Build Windows 
       run: GOOS=windows GOARCH=amd64 go build -o release-windows-amd64.exe -v source/cmd/main.go
 
+    - name: Build MacOS 64bit
+      run: GOOS=darwin GOARCH=amd64 go build -o release-mac-amd64 -v source/cmd/main.go
+      
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -68,6 +71,16 @@ jobs:
         asset_path: ./release-linux.amd64
         asset_name: linux-amd64
         asset_content_type: application/octet-stream
+        
+    - name: Upload Release Mac Asset
+      id: upload-release-asset-mac
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./release-mac-amd64 
+        asset_name: mac-amd64
         
     - name: Upload Release Windows Asset
       id: upload-release-asset-windows
