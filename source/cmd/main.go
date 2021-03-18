@@ -123,21 +123,46 @@ func doCron(delay int) {
 	}
 	s.Delay().Second(delay).Do(doAbsensi)
 }
+
+func copyToAbsensiDirectory(config *config.Config) error {
+	home, err := tools.GetHomeDirectory()
+	if err != nil {
+		log.Panic("Create File Error. Panic and abort the apps")
+	}
+	folderPath := home + "/" + ".absensi"
+	if tools.CheckFileExists(".env") {
+		return err
+	}
+	if tools.CheckFileExists(config.Picture) {
+		return err
+	}
+	length, err := tools.Copy(".env", folderPath+"/.env")
+	if length == 0 || err != nil {
+		return errors.New("Cant copy file .env")
+	}
+	length, err = tools.Copy(config.Picture, folderPath+"/"+config.Picture)
+	if length == 0 || err != nil {
+		return errors.New("Cant copy file " + config.Picture)
+	}
+	return nil
+}
+
 func main() {
-	doAbsensi()
+	config := config.NewConfig()
+	err := copyToAbsensiDirectory(config)
+	if err != nil {
+		log.Panicf("%s", err.Error())
+	}
+	doAbsensi(config)
 	sig := make(chan os.Signal)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig
 }
 
-func doAbsensi() {
-	config := config.NewConfig()
+func doAbsensi(config *config.Config) {
 	format := "2006-01-02 15:04"
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Panic("Create File Error. Panic and abort the apps")
-	}
+	home, err := tools.GetHomeDirectory()
 	folderPath := home + "/" + ".absensi"
 	fileName := folderPath + "/" + "absensi.db"
 	_, err = os.Stat(folderPath)
@@ -190,7 +215,7 @@ func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
 	_ = writer.WriteField("location_longitude", config.Longitude)
 	_ = writer.WriteField("location_description", config.Description)
 	_ = writer.WriteField("location_timezone", config.Region)
-	home, err := os.UserHomeDir()
+	home, err := tools.GetHomeDirectory()
 	if err != nil {
 		log.Panic("Create File Error. Panic and abort the apps")
 	}
