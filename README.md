@@ -1,4 +1,21 @@
 
+# Quick Start
+1. Copy file .env from examples/.env to same path with absensi.exe or absensi
+2. Copy your picture to upload to same path with absensi.exe or absensi
+3. Fill contents of .env files. 
+```
+BaseURL=https://myapps.lintasarta.net/api
+UserName=
+Password=
+Picture=
+Longitude=
+Lattitude=
+Description=
+Region=Asia/Jakarta
+```
+Tips: Dont change for BaseURL and Region, Picture only filename with extension
+4. Run absensi.exe or absensi (in linux)
+
 # Cara Kerja
 1. Check untuk file schedule.log
 2. kalau tidak ada, 
