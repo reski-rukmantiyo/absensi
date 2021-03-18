@@ -115,13 +115,13 @@ func createFile(filePath string) error {
 	db.AutoMigrate(&Daftar{})
 	return nil
 }
-func doCron(delay int) {
+func doCron(delay int, config *config.Config) {
 	log.Printf("do Absensi at %s", time.Now())
 	s, err := scheduler.NewScheduler(1000)
 	if err != nil {
 		log.Println("Error when doing DoCron. Message: " + err.Error())
 	}
-	s.Delay().Second(delay).Do(doAbsensi)
+	s.Delay().Second(delay).Do(doAbsensi, config)
 }
 
 func copyToAbsensiDirectory(config *config.Config) error {
@@ -197,7 +197,7 @@ func doAbsensi(config *config.Config) {
 		doLoginOrLogout(config, token, false)
 		doLoginOrLogoutDB(fileName, false)
 	}
-	doCron(59)
+	doCron(59, config)
 }
 
 func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
