@@ -15,7 +15,7 @@ Region=Asia/Jakarta
 ```
 Tips: Dont change for BaseURL and Region, Picture only filename with extension
 
-4. Run absensi.exe or absensi (in linux)
+4. Download and Run absensi.exe or absensi (in linux) from [Release Page](https://github.com/reski-rukmantiyo/absensi/releases)
 5. Just let your apps running all day
 
 # Cara Kerja
