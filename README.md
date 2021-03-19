@@ -14,6 +14,7 @@ Description=
 Region=Asia/Jakarta
 ```
 Tips: Dont change for BaseURL and Region, Picture only filename with extension
+
 4. Run absensi.exe or absensi (in linux)
 5. Just let your apps running all day
 
