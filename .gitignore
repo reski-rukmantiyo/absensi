@@ -1,7 +1,5 @@
 absensi
 test.db
-bin/Kira_Yamato_003.jpg
-bin/.env
 .env
-bin/absensi.dmg
-bin/windows.exe
+bin/*
+main
