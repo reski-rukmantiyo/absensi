@@ -45,8 +45,18 @@ type Daftar struct {
 	LogoutExecuteTime time.Time `gorm:"column:logout_execute_time"`
 }
 
+func databaseClose(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Printf("Error Database Close %s", err.Error())
+	}
+	sqlDB.Close()
+}
+
 func insertIntoDB(filename string, daftar *Daftar) error {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+	defer databaseClose(db)
+
 	if err != nil {
 		log.Panic("failed to connect database")
 		return err
@@ -65,6 +75,8 @@ func insertIntoDB(filename string, daftar *Daftar) error {
 
 func doLoginOrLogoutDB(filename string, isLogin bool) error {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+	defer databaseClose(db)
+
 	if err != nil {
 		log.Panic("failed to connect database")
 		return err
@@ -85,6 +97,8 @@ func doLoginOrLogoutDB(filename string, isLogin bool) error {
 
 func checkAndCreateSchedule(filename string) (*Daftar, error) {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+	defer databaseClose(db)
+
 	if err != nil {
 		log.Panic("failed to connect database")
 		return nil, err
@@ -109,6 +123,8 @@ func checkAndCreateSchedule(filename string) (*Daftar, error) {
 
 func createFile(filePath string) error {
 	db, err := gorm.Open(sqlite.Open(filePath), &gorm.Config{})
+	defer databaseClose(db)
+
 	if err != nil {
 		log.Panic("failed to connect database")
 		return err
