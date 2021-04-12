@@ -142,25 +142,32 @@ func doCron(delay int, config *config.Config) {
 }
 
 func copyToAbsensiDirectory(config *config.Config) error {
-	home, err := tools.GetHomeDirectory()
-	if err != nil {
-		log.Panic("Create File Error. Panic and abort the apps")
-	}
-	folderPath := home + "/" + ".absensi"
-	if tools.CheckFileExists(".env") {
+	// home, err := tools.GetHomeDirectory()
+	// if err != nil {
+	// 	log.Panic("Create File Error. Panic and abort the apps")
+	// }
+	// folderPath := home + "/" + ".absensi"
+	// path, err := os.Getwd()
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// fmt.Println(path)
+	if !tools.CheckFileExists(".env") {
+		err := errors.New("cant find .env fle")
 		return err
 	}
-	if tools.CheckFileExists(config.Picture) {
+	if !tools.CheckFileExists(config.Picture) {
+		err := errors.New("cant find fle file")
 		return err
 	}
-	length, err := tools.Copy(".env", folderPath+"/.env")
-	if length == 0 || err != nil {
-		return errors.New("Cant copy file .env")
-	}
-	length, err = tools.Copy(config.Picture, folderPath+"/"+config.Picture)
-	if length == 0 || err != nil {
-		return errors.New("Cant copy file " + config.Picture)
-	}
+	// length, err := tools.Copy(".env", folderPath+"/.env")
+	// if length == 0 || err != nil {
+	// 	return errors.New("Cant copy file .env")
+	// }
+	// length, err = tools.Copy(config.Picture, folderPath+"/"+config.Picture)
+	// if length == 0 || err != nil {
+	// 	return errors.New("Cant copy file " + config.Picture)
+	// }
 	return nil
 }
 
@@ -178,10 +185,10 @@ func main() {
 
 func doAbsensi(config *config.Config) {
 	format := "2006-01-02 15:04"
-	home, err := tools.GetHomeDirectory()
+	home, _ := tools.GetHomeDirectory()
 	folderPath := home + "/" + ".absensi"
 	fileName := folderPath + "/" + "absensi.db"
-	_, err = os.Stat(folderPath)
+	_, err := os.Stat(folderPath)
 	if err != nil {
 		err = os.Mkdir(folderPath, os.ModePerm)
 		if err != nil {
@@ -242,20 +249,24 @@ func doLoginOrLogout(config *config.Config, token string, isLogin bool) {
 	_ = writer.WriteField("location_longitude", config.Longitude)
 	_ = writer.WriteField("location_description", config.Description)
 	_ = writer.WriteField("location_timezone", config.Region)
-	home, err := tools.GetHomeDirectory()
-	if err != nil {
-		log.Panic("Create File Error. Panic and abort the apps")
+	// home, err := tools.GetHomeDirectory()
+	// if err != nil {
+	// 	log.Panic("Create File Error. Panic and abort the apps")
+	// }
+	// folderPath := home + "/" + ".absensi"
+	file, errFile5 := os.Open(config.Picture)
+	if errFile5 != nil {
+		fmt.Println(errFile5)
+		return
 	}
-	folderPath := home + "/" + ".absensi"
-	file, errFile5 := os.Open(folderPath + "/" + config.Picture)
 	defer file.Close()
-	part5, errFile5 := writer.CreateFormFile("photo", filepath.Base(folderPath+"/"+config.Picture))
+	part5, errFile5 := writer.CreateFormFile("photo", filepath.Base(config.Picture))
 	_, errFile5 = io.Copy(part5, file)
 	if errFile5 != nil {
 		fmt.Println(errFile5)
 		return
 	}
-	err = writer.Close()
+	err := writer.Close()
 	if err != nil {
 		fmt.Println(err)
 		return
