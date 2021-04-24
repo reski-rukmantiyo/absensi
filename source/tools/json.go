@@ -13,6 +13,6 @@ func ToJSON(obj interface{}) (jsonString []byte, err error) {
 func FromJSON(jsonString string, obj interface{}) {
 	err := json.Unmarshal([]byte(jsonString), &obj)
 	if err != nil {
-		log.Println("Error parsing JSON. " + err.Error())
+		log.Println("ABS24-Error parsing JSON. " + err.Error())
 	}
 }

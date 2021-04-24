@@ -4,8 +4,11 @@ go 1.16
 
 require (
 	github.com/elazarl/goproxy v0.0.0-20210110162100-a92cc753f88e // indirect
+	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/go-playground/validator v9.31.0+incompatible // indirect
 	github.com/go-redis/redis/v8 v8.7.1
 	github.com/joho/godotenv v1.3.0
+	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prprprus/scheduler v0.5.0 // indirect
