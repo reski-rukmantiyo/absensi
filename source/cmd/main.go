@@ -3,7 +3,9 @@ package main
 import (
 	"absensi/source/config"
 	"absensi/source/tools"
+	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator"
 	"github.com/prprprus/scheduler"
 	log "github.com/sirupsen/logrus"
 
@@ -142,16 +145,6 @@ func doCron(delay int, config *config.Config) {
 }
 
 func copyToAbsensiDirectory(config *config.Config) error {
-	// home, err := tools.GetHomeDirectory()
-	// if err != nil {
-	// 	log.Panic("Create File Error. Panic and abort the apps")
-	// }
-	// folderPath := home + "/" + ".absensi"
-	// path, err := os.Getwd()
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// fmt.Println(path)
 	if !tools.CheckFileExists(".env") {
 		err := errors.New("cant find .env fle")
 		return err
@@ -160,23 +153,137 @@ func copyToAbsensiDirectory(config *config.Config) error {
 		err := errors.New("cant find fle file")
 		return err
 	}
-	// length, err := tools.Copy(".env", folderPath+"/.env")
-	// if length == 0 || err != nil {
-	// 	return errors.New("Cant copy file .env")
-	// }
-	// length, err = tools.Copy(config.Picture, folderPath+"/"+config.Picture)
-	// if length == 0 || err != nil {
-	// 	return errors.New("Cant copy file " + config.Picture)
-	// }
 	return nil
 }
 
-func main() {
-	config := config.NewConfig()
-	err := copyToAbsensiDirectory(config)
-	if err != nil {
-		log.Panicf("%s", err.Error())
+type ConfigFile struct {
+	UserName    string `validate:"required,alpha"`
+	Password    string `validate:"required,alphanum"`
+	Picture     string `validate:"required"`
+	Longitude   string `validate:"required,longitude"`
+	Lattitude   string `validate:"required,latitude"`
+	Description string `validate:"required"`
+	BaseURL     string
+	Region      string
+}
+
+func NewConfigFile() *ConfigFile {
+	return &ConfigFile{}
+}
+
+func validateInput(value, validationTag string) string {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("%s : ", value)
+		inputResult, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Printf("Error Gather Input %s\n", err)
+		}
+		inputResult = strings.Trim(inputResult, "\n")
+		// fmt.Printf("Input = %s\n", inputResult)
+		err = validate.Var(inputResult, validationTag)
+		if err != nil {
+			fmt.Printf("%s hanya bisa %s. %s\n", value, validationTag, err)
+		} else if value == "Picture" && !tools.CheckFileExists(inputResult) {
+			fmt.Printf("File %s tidak ada\n", inputResult)
+		} else {
+			return inputResult
+		}
 	}
+}
+
+var validate *validator.Validate
+
+func gatherUserInput() *ConfigFile {
+	validate = validator.New()
+	configFile := NewConfigFile()
+	configFile.UserName = validateInput("UserName", "required,alpha")
+	configFile.Password = validateInput("Password", "required,alphanum")
+	configFile.Picture = validateInput("Picture", "required")
+	configFile.Longitude = validateInput("Longitude", "required,longitude")
+	configFile.Lattitude = validateInput("Lattitude", "required,latitude")
+	configFile.Description = validateInput("Description", "required")
+	configFile.Region = "Asia/Jakarta"
+	configFile.BaseURL = "https://myapps.lintasarta.net/api"
+	return configFile
+}
+
+func ValidateStruct(v ConfigFile) (err error) {
+	validate = validator.New()
+	err = validate.Struct(&v)
+	if err != nil {
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			fmt.Println(err)
+			return
+		}
+		// invalidErr := err.(*validator.InvalidValidationError)
+		// if invalidErr != nil {
+		// 	return
+		// }
+		// if _, ok := err.(*validator.InvalidValidationError); ok {
+		// 	fmt.Println(err)
+		// 	return
+		// }
+		// for _, err := range err.(validator.ValidationErrors) {
+
+		// 	fmt.Println(err.Namespace())
+		// 	fmt.Println(err.Field())
+		// 	fmt.Println(err.StructNamespace())
+		// 	fmt.Println(err.StructField())
+		// 	fmt.Println(err.Tag())
+		// 	fmt.Println(err.ActualTag())
+		// 	fmt.Println(err.Kind())
+		// 	fmt.Println(err.Type())
+		// 	fmt.Println(err.Value())
+		// 	fmt.Println(err.Param())
+		// 	fmt.Println()
+		// }
+		// return
+	}
+	return nil
+}
+
+// func validateConfig(sl validator.StructLevel) {
+
+// 	configFile := sl.Current().Interface().(ConfigFile)
+
+// 	// plus can do more, even with different tag than "fnameorlname"
+// }
+
+func main() {
+	if !tools.CheckFileExists("config.json") {
+		configFile := gatherUserInput()
+		file, _ := json.MarshalIndent(configFile, "", " ")
+		_ = ioutil.WriteFile("config.json", file, 0644)
+	} else {
+		configFile := NewConfigFile()
+		jsonFile, err := os.Open("config.json")
+		if err != nil {
+			log.Fatalf("File config.json tidak ditemukan. %s", err)
+		}
+		fmt.Println("Successfully Opened config.json")
+		defer jsonFile.Close()
+		byteValue, err := ioutil.ReadAll(jsonFile)
+		if err != nil {
+			log.Fatalf("File config.json corrupt. %s", err)
+		}
+		json.Unmarshal(byteValue, &configFile)
+		validate = validator.New()
+		err = validate.Struct(configFile)
+		if err != nil {
+			fmt.Println("File config.json missing information. Please check config.json. Error(s) are ")
+			errs := err.(validator.ValidationErrors)
+			for _, value := range errs {
+				if value.Tag() == "latitude" || value.Tag() == "longitude" {
+					fmt.Printf("Longitude or Latitude required or incorrect format\n")
+				} else {
+					fmt.Printf("%s is %s\n", value.Field(), value.Tag())
+				}
+			}
+			return
+		}
+	}
+	config := config.NewConfig()
 	doAbsensi(config)
 	sig := make(chan os.Signal)
 	signal.Notify(sig, os.Interrupt, os.Kill)
