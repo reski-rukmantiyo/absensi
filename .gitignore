@@ -1,6 +1,5 @@
 absensi
 test.db
-bin/Kira_Yamato_003.jpg
-bin/.env
 .env
-bin/absensi.dmg
+source/cmd/config.json
+bin/*
