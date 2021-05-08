@@ -24,7 +24,8 @@ import (
 	"github.com/prprprus/scheduler"
 	log "github.com/sirupsen/logrus"
 
-	"gorm.io/driver/sqlite"
+	//"gorm.io/driver/sqlite"
+	sqlite "go.elastic.co/apm/module/apmgormv2/driver/sqlite"
 	"gorm.io/gorm"
 )
 
