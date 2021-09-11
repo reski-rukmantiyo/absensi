@@ -145,7 +145,7 @@ func doCron(delay int, config *ConfigFile) {
 
 type ConfigFile struct {
 	UserName    string `validate:"required,alpha"`
-	Password    string `validate:"required,alphanum"`
+	Password    string `validate:"required"`
 	Picture     string `validate:"required"`
 	Longitude   string `validate:"required,longitude"`
 	Lattitude   string `validate:"required,latitude"`
@@ -185,7 +185,7 @@ func gatherUserInput() *ConfigFile {
 	validate = validator.New()
 	configFile := NewConfigFile()
 	configFile.UserName = validateInput("UserName", "required,alpha")
-	configFile.Password = validateInput("Password", "required,alphanum")
+	configFile.Password = validateInput("Password", "required")
 	configFile.Picture = validateInput("Picture", "required")
 	configFile.Longitude = validateInput("Longitude", "required,longitude")
 	configFile.Lattitude = validateInput("Lattitude", "required,latitude")
