@@ -1,0 +1,14 @@
+!*
+!dist/
+!bin/
+*.yml
+*.sh
+Makefile
+.git
+.gitignore
+dockerfile
+examples
+README.md
+.github
+.vscode
+
