@@ -1,0 +1,4 @@
+FROM scratch
+WORKDIR /
+COPY bin/absensi-linux-arm32 /app/absensi
+CMD ["/app/absensi"]

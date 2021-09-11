@@ -19,7 +19,7 @@ build-multi:
 	-v "$(GOBASE)":/go/src/myrepo/mypackage -w /go/src/myrepo/mypackage \
 	-e GOOS=linux -e GOARCH=arm -e CGO_ENABLED=1 \
 	-e CC=arm-linux-gnueabihf-gcc rrukmantiyo/go-docker-arm-toolchain:latest \
-	go build -o bin/absensi-linux-arm32bit -v source/cmd/main.go
+	go build -o bin/absensi-linux-arm32 -v source/cmd/main.go
 
 	# ## ARM 64
 	sudo docker run -it --rm \
@@ -35,6 +35,13 @@ build-multi:
 	-e CC=x86_64-w64-mingw32-gcc rrukmantiyo/go-docker-arm-toolchain:latest \
 	go build -o bin/absensi-win64.exe -v source/cmd/main.go
 
+	## Linux 64bit
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o $(GOBIN)/$(PROJECTNAME) -v $(GOSOURCEFILES) 
+
 build-image:
-	echo "Make docker image and push to docker hub"
-	sudo docker build -t absensi:latest -f dockerfile .
+	echo "Make docker image and push to docker hub with default is for AMD64"
+	sudo docker build -t absensi:latest -f docker/dockerfile-linux-amd64 .
+	sudo docker build -t absensi:amd64-v$(TAG) -f docker/dockerfile-linux-amd64 .
+	# sudo docker build -t absensi:win64-v$(TAG) -f docker/dockerfile-windows-amd64 .
+	# sudo docker build -t absensi:linux-arm32-v$(TAG) -f docker/dockerfile-linux-arm32 .
+	# sudo docker build -t absensi:linux-arm64-v$(TAG) -f docker/dockerfile-linux-arm64 .

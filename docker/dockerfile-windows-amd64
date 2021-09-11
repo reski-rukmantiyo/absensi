@@ -1,0 +1,4 @@
+FROM scratch
+WORKDIR /
+COPY bin/absensi-win64 /app/absensi
+CMD ["/app/absensi"]
